@@ -1,14 +1,33 @@
 import * as express from 'express';
 import * as admin from 'firebase-admin';
+import * as functions from 'firebase-functions';
 
+admin.initializeApp();
+
+const app = express();
 const firestore = admin.firestore();
-
-// Imports the Google Cloud client library
 const language = require('@google-cloud/language');
-
-// Creates a client
 const client = new language.LanguageServiceClient();
 
+const authentication = async (req: express.Request, res: express.Response, next: () => any) => {
+  if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
+    res.status(403).send('Unauthorized');
+    return;
+  }
+  const idToken : string = req.headers.authorization.split('Bearer ')[1];
+  try {
+    await admin.auth().verifyIdToken(idToken);
+    next();
+    return;
+  } catch(error) {
+    res.status(403).send('Unauthorized');
+    return;
+  }
+}
+
+app.use(authentication);
+
+exports.widgets = functions.https.onRequest(app);
 /**
  * TODO(developer): Uncomment the following line to run this code.
  */
@@ -33,5 +52,3 @@ entities.forEach(entity => {
     console.log(` - Wikipedia URL: ${entity.metadata.wikipedia_url}`);
   }
 });
-
-const app = express();
