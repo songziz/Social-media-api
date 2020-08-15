@@ -1,5 +1,6 @@
 import * as express from 'express';
 import * as admin from 'firebase-admin';
+
 const firestore = admin.firestore();
 
 // Imports the Google Cloud client library
