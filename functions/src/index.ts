@@ -9,23 +9,11 @@ const firestore = admin.firestore();
 const language = require('@google-cloud/language');
 const client = new language.LanguageServiceClient();
 
-const authentication = async (req: express.Request, res: express.Response, next: () => any) => {
-  if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
-    res.status(403).send('Unauthorized');
-    return;
-  }
-  const idToken : string = req.headers.authorization.split('Bearer ')[1];
-  try {
-    await admin.auth().verifyIdToken(idToken);
-    next();
-    return;
-  } catch(error) {
-    res.status(403).send('Unauthorized');
-    return;
-  }
-}
+import authentication from './controllers/authentication';
 
 app.use(authentication);
+
+
 
 exports.widgets = functions.https.onRequest(app);
 /**
