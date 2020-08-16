@@ -250,6 +250,9 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
           .doc(eventId).set(eventSummary);
       }
 
+      await admin.firestore().collection('users').doc(eventSummary.createdBy).collection('events')
+        .doc(eventId).set({slots: eventSummary.slots}, {merge: true});
+
       return Promise.resolve();
     }).then(() => res.sendStatus(201)).catch((error) => res.status(500).send(error.message));
   };
@@ -298,6 +301,9 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
 
         await admin.firestore().collection('users').doc(uid).collection('events').doc(eventId).delete();
 
+        await admin.firestore().collection('users').doc(eventSummary.createdBy).collection('events')
+          .doc(eventId).set({slots: eventSummary.slots}, {merge: true});
+          
         await admin.firestore().collection('events').doc(eventId).set({slots: newSlots}, {merge: true});
   
       });

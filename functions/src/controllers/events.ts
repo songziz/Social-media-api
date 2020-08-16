@@ -4,34 +4,35 @@ import {extractEntity, getImage} from './entity-extraction';
 
 export const createEvent = async (req: express.Request, res: express.Response) => {
   if (!req.body.event || !req.body.event.username
-      || !req.body.event.name || !req.body.event.description) {
-    res.sendStatus(400);
+      || !req.body.event.name || !req.body.event.description || !req.body.event.uid) {
+    res.status(400).send(JSON.stringify(req.body));
     return;
   }
 
   const {event} = req.body;
 
-  const tags = await extractEntity(event.description);
-  const imageUrl = getImage(tags);
-
-  const newTags : any = {};
-  for (const tag of tags) {
-    newTags[tag[0]] = tag[1];
-  }
-
-  const data = {
-    createdBy: event.username,
-    description: event.description,
-    name: event.name,
-    tags: newTags,
-    image: imageUrl,
-    slots: [],
-    postedOn: new Date().toString(),
-  };
-
   try {
+    const tags = await extractEntity(event.description);
+    const imageUrl = await getImage(tags);
+
+    const newTags : any = {};
+    for (const tag of tags) {
+      newTags[tag[0]] = tag[1];
+    }
+    
+    const data = {
+      createdBy: event.uid,
+      description: event.description,
+      username: event.username,
+      name: event.name,
+      tags: newTags,
+      image: imageUrl,
+      slots: [],
+      postedOn: new Date().toString(),
+    };
+
     await admin.firestore().runTransaction(async () => {
-      const userDoc = admin.firestore().collection('users').doc(event.createdBy);
+      const userDoc = admin.firestore().collection('users').doc(data.createdBy);
 
       const userDataTags = await userDoc.get().then(doc => doc.data()!.tags);
 
