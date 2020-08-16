@@ -3,17 +3,20 @@ import {
   getUser,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  getUserEvents,
 } from '../controllers/users';
 
 const router : express.Router = express.Router();
 
-router.get('/users/:uid', getUser);
+router.get('/:uid', getUser);
 
-router.post('/users', createUser);
+router.get('/:uid/events', getUserEvents);
 
-router.patch('/users/:uid', updateUser);
+router.post('/', createUser);
 
-router.delete('/users/:uid', deleteUser);
+router.patch('/:uid', updateUser);
+
+router.delete('/:uid', deleteUser);
 
 export default router;
