@@ -420,7 +420,10 @@ export const getFriends = async (req: express.Request, res: express.Response) =>
   }
 }
 
-export const getEvents = (req: express.Request, res: express.Response) => {
+/**
+ * returns all of a users created events
+ */
+export const getEvents = async (req: express.Request, res: express.Response) => {
   if (!req.params.uid) {
     res.sendStatus(400);
     return;
@@ -428,4 +431,12 @@ export const getEvents = (req: express.Request, res: express.Response) => {
 
   const {uid} = req.params;
 
+  await admin.firestore().collection('users').doc(uid).collection('events').where('createdBy', '==', uid)
+    .get().then((snap) => {
+      const result : any[] = [];
+      snap.forEach((doc) => {
+        result.push(doc.data()!);
+      });
+      res.status(200).json(result);
+    }).catch((error) => res.status(500).send(error.message)); 
 }
