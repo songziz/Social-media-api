@@ -1,5 +1,10 @@
 import * as admin from 'firebase-admin';
 
+/**
+ *
+ * @param {string} words descriptions of the event given by user
+ * @return {[string, number][]} phase and rating pair
+ */
 export async function extractEntity(words: string){
   const language = require('@google-cloud/language');
   const client = new language.LanguageServiceClient();
@@ -22,6 +27,12 @@ export async function extractEntity(words: string){
 
 const DEFAULT_URL = 'gs://hack20-52610.appspot.com/images/pexels-ronê-ferreira-2735037.jpg'
 
+/**
+ *
+ * @param {[string, number][]} query obtained from extractEntity function
+ * @return {string} gs:// url that the user can retrieve from storage. See:
+ * https://firebase.google.com/docs/storage/web/download-files
+ */
 export async function getImage(query: [string, number][]) {
   let words: string[] = [];
   query.forEach((word) => words.push(word[0].toLowerCase()));
