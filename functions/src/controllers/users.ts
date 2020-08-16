@@ -435,7 +435,7 @@ export const getEvents = async (req: express.Request, res: express.Response) => 
     .get().then((snap) => {
       const result : any[] = [];
       snap.forEach((doc) => {
-        result.push(doc.data()!);
+        result.push(doc.data());
       });
       res.status(200).json(result);
     }).catch((error) => res.status(500).send(error.message)); 
