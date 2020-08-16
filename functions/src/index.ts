@@ -5,14 +5,19 @@ import * as functions from 'firebase-functions';
 admin.initializeApp();
 
 const app = express();
-const firestore = admin.firestore();
-const language = require('@google-cloud/language');
-const client = new language.LanguageServiceClient();
+// const firestore = admin.firestore();
+// const language = require('@google-cloud/language');
+// const client = new language.LanguageServiceClient();
 
 import authentication from './controllers/authentication';
+import { getImageLabel } from './controllers/image-labeling';
 
 app.use(authentication);
 
 
 
 exports.widgets = functions.https.onRequest(app);
+
+exports.imageLabel = functions.storage
+  .object()
+  .onFinalize(async object => getImageLabel(object));
