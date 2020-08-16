@@ -83,6 +83,7 @@ export const getEvent = (req: express.Request, res: express.Response) => {
         name:data!.name,
         postedOn:data!.postedOn,
         slots:data!.slots,
+        tags:data!.tags,
         username: data!.username,
         uid: uid,
       };
