@@ -56,7 +56,7 @@ export const createEvent = async (req: express.Request, res: express.Response) =
 
       await userDoc.collection('events').doc(eventId).set(summaryData);
     });
-    res.sendStatus(201);
+    res.status(201).send(data);
   } catch (error) {
     res.status(500).send(error.message);
   }

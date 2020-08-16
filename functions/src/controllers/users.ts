@@ -440,3 +440,19 @@ export const getEvents = async (req: express.Request, res: express.Response) => 
       res.status(200).json(result);
     }).catch((error) => res.status(500).send(error.message)); 
 }
+
+export const getIcons = async (req: express.Request, res: express.Response) => {
+  if (!req.query.icons) {
+    res.status(400).send('Malformed Request');
+    return;
+  }
+  const icons = JSON.parse(req.query.icons as string);
+  await admin.firestore().collection('users').where('uid', 'in', icons).get()
+    .then((snapshot) => {
+        const result : any = [];
+        snapshot.forEach((doc) => {
+          result.push(doc.data().icon);
+        });
+        res.status(200).json(result);
+    }).catch((error) =>res.sendStatus(500));
+}

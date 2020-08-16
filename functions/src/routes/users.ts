@@ -11,6 +11,7 @@ import {
   getRequests,
   getFriends,
   getEvents,
+  getIcons,
 } from '../controllers/users';
 
 const router : express.Router = express.Router();
@@ -36,5 +37,7 @@ router.get('/:uid/requests', getRequests); // tested
 router.get('/:uid/friends', getFriends); // not sure
 
 router.get('/:uid/events', getEvents);
+
+router.get('/icons', getIcons);
 
 export default router;

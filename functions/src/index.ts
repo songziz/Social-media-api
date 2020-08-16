@@ -12,11 +12,12 @@ const app = express();
 import { getImageLabel } from './controllers/image-labeling';
 
 import Users from './routes/users';
+import Events from './routes/events';
 
 //app.use(authentication);
 
 app.use('/users', Users);
-
+app.use('/events', Events);
 
 exports.widgets = functions.https.onRequest(app);
 
