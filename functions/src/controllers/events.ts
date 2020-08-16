@@ -62,9 +62,6 @@ export const createEvent = async (req: express.Request, res: express.Response) =
   }
 }
 
-
-// getEvent
-
 export const getEvent = (req: express.Request, res: express.Response) => {
   if (!req.params.uid) {
     res.sendStatus(400);
