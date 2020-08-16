@@ -331,7 +331,8 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
         slots: data.slots,
         username: data.username,
         uid: data.uid,
-        current: data.current,
+        name: data.name,
+        createdBy: data.name,
       });
     });
 
