@@ -1,6 +1,8 @@
 import * as express from 'express';
 import * as admin from 'firebase-admin';
 import User from '../util/user';
+import { firebaseConfig } from 'firebase-functions';
+import { ResultStorage } from 'firebase-functions/lib/providers/testLab';
 
 /**
  * GET a specific user based on their UID. Returns a User object in the body
@@ -141,12 +143,14 @@ export const sendFriendRequest = async (req: express.Request, res: express.Respo
   const from = admin.firestore().collection('users').doc(fromUid);
   const to = admin.firestore().collection('users').doc(toUid);
   
-  try { 
-    const fromData : any = await from.get().then((doc) => doc.data());
-    const toData : any = await to.get().then((doc) => doc.data());
-    
-    await from.collection('fromRequests').doc(fromUid).set({username: toData.username, icon: toData.icon});
-    await to.collection('toRequests').doc(toUid).set({username: fromData.username, icon: fromData.icon});
+  try {
+    admin.firestore().runTransaction(async () => {
+      const fromData : any = await from.get().then((doc) => doc.data());
+      const toData : any = await to.get().then((doc) => doc.data());
+      
+      await from.collection('fromRequests').doc(fromUid).set({username: toData.username, icon: toData.icon});
+      await to.collection('toRequests').doc(toUid).set({username: fromData.username, icon: fromData.icon});
+    });
 
     res.sendStatus(201);
   } catch (error) {
@@ -259,13 +263,137 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
   };
 
 
-// leaveEvent:
+  export const leaveEvent = async (req: express.Request, res: express.Response) => {
+    if (!req.params.uid || !req.query.event) {
+      res.sendStatus(400);
+      return;
+    }
+
+    const uid = req.params.uid;
+    const eventId = req.query.event as string;
+
+    try {
+      await admin.firestore().runTransaction(async () => {
+        const eventDoc = await admin.firestore().collection('events').doc(eventId).get();
+        const eventData = eventDoc.data()!;
+        const slots = eventData.slots;
+  
+        const index = slots.indexOf(uid);
+        const newSlots = slots.filter((val: any, idx: number) => idx !== index);
+  
+        let newIcons : string[];
+        if (newSlots.length !== 0) {
+          const document = await admin.firestore().collection('users').doc(newSlots[0]).collection('events').doc(eventId).get();
+          const data = document.data()!;
+  
+          newIcons = data.slots.filter((val: any, idx: number) => idx !== index);
+        } else {
+          newIcons = [];
+        }
+  
+        const eventSummary : any = {
+          createdBy: eventData.createdBy,
+          name: eventData.name,
+          uid: eventId,
+          current: true,
+          username: eventData.username,
+          slots: newIcons,
+        }
+  
+        for (const id of newSlots) {
+          await admin.firestore().collection('users').doc(id).collection('events').doc(eventId).set(eventSummary);
+        }
+
+        await admin.firestore().collection('users').doc(uid).collection('events').doc(eventId).delete();
+
+        await admin.firestore().collection('events').doc(eventId).set({slots: newSlots}, {merge: true});
+  
+      });
+      res.sendStatus(200);
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  }
+
+  export const getRecents = async (req : express.Request, res: express.Response) => {
+    if (!req.params.uid) {
+      res.sendStatus(400);
+      return;
+    }
+
+    const uid = req.params.uid;
+    
+    let recents : any;
+    try {
+      recents = await admin.firestore().collection('users').doc(uid).collection('events').where('current', '==', true).get();
+    } catch (error) {
+      res.status(500).send(error.message);
+      return
+    }
+
+    const result : any[] = [];
+
+    recents.forEach((doc : admin.firestore.QueryDocumentSnapshot) => {
+      const data = doc.data()!;
+      result.push({
+        slots: data.slots,
+        username: data.username,
+        uid: data.uid,
+        current: data.current,
+      });
+    });
+
+    res.status(200).json(result);
+  }
+
+  export const getRequests = async (req: express.Request, res: express.Response) => {
+    if (!req.params.uid) {
+      res.sendStatus(400);
+      return;
+    }
+
+    const uid = req.params.uid;
+
+    try {
+      await admin.firestore().runTransaction(async () => {
+        const doc = admin.firestore().collection('users').doc(uid);
+        const toReq = await doc.collection('toRequests').get();
+        const fromReq = await doc.collection('fromRequests').get();
+
+        let toResult : any[] = [];
+        toReq.docs.forEach((doc) => {
+          const data  = doc.data()!;
+          toResult.push({
+            username: data.username,
+            icon: data.icon,
+            uid: doc.id,
+          })
+        });
+
+        let fromResult : any[] = [];
+        fromReq.docs.forEach((doc) => {
+          const data  = doc.data()!;
+          fromResult.push({
+            username: data.username,
+            icon: data.icon,
+            uid: doc.id,
+          })
+        });
+
+        res.status(200).json([toResult, fromResult]);
+      }); 
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  }
+
+// leaveEvent: DONE
 // path params : uid -> uid of user
 // queury param: event -> event uid
 // removes user from event, and updates all of the other user's slots and 
 // deletes the event from the user's event collection
 
-// getRecents:
+// getRecents: Done
 // path params: uid -> uid of user
 // returns the recent events for the user (query their collection where current == true)
 
@@ -273,11 +401,6 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
 // path params: uid -> uid of user
 // returns friends of suer (query their friends collection)
 
-// getFeed:
-// path params: uid -> uid of user
-// returns all of the events that their friends have in their
-// 'events' collection
-
-// getRequests:
+// getRequests: Done
 // path params: uid -> uid of usre
 // returns the requests sent from/to a user
