@@ -9,6 +9,7 @@ import {
   leaveEvent,
   getRecents,
   getRequests,
+  getFriends,
 } from '../controllers/users';
 
 const router : express.Router = express.Router();
@@ -31,5 +32,6 @@ router.get('/:uid/events/recents', getRecents); // tested
 
 router.get('/:uid/requests', getRequests); // tested
 
+router.get('/:uid/friends', getFriends);
 
 export default router;
