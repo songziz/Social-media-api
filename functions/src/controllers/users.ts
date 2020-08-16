@@ -1,8 +1,6 @@
 import * as express from 'express';
 import * as admin from 'firebase-admin';
 import User from '../util/user';
-import { firebaseConfig } from 'firebase-functions';
-import { ResultStorage } from 'firebase-functions/lib/providers/testLab';
 
 /**
  * GET a specific user based on their UID. Returns a User object in the body
