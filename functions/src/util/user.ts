@@ -5,20 +5,26 @@ interface FirebaseRequests {
   outgoing: string[],
 }
 
+interface Friend {
+  username: string;
+  icon: string;
+  uid: string;
+}
+
 class User {
   username : string;
-  friends : string[];
-  events : string[];
+  friends : Friend[];
+  recentEvents : string[];
   tags : any;
   icon : string;
   friendRequests : [string[], string[]]; // 2 string arrays, first is outgoing, 2nd incoming
   uid : string;
 
-  constructor(username: string, friends : string[], events : string[],
+  constructor(username: string, friends : Friend[], recentEvents : string[],
     tags : any, icon : string, friendRequests : [string[], string[]], uid: string) {
       this.username = username;
       this.friends = friends;
-      this.events = events;
+      this.recentEvents = recentEvents;
       this.tags = tags;
       this.icon = icon;
       this.friendRequests = friendRequests;

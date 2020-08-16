@@ -2,18 +2,27 @@ import * as express from 'express';
 import {
   getUser,
   createUser,
-  updateUser,
-  deleteUser
+  updateTags,
+  deleteUser,
+  joinEvent,
+  sendFriendRequest,
+  acceptFriendRequest,
 } from '../controllers/users';
 
 const router : express.Router = express.Router();
 
-router.get('/users/:uid', getUser);
+router.get('/:uid', getUser);
 
-router.post('/users', createUser);
+router.post('/', createUser);
 
-router.patch('/users/:uid', updateUser);
+router.patch('/:uid', updateTags);
 
-router.delete('/users/:uid', deleteUser);
+router.delete('/:uid', deleteUser);
+
+router.post('/:uid/requests/send', sendFriendRequest);
+
+router.post('/:uid/requests/accept', acceptFriendRequest);
+
+router.post('/:uid/events/', joinEvent);
 
 export default router;
