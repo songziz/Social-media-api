@@ -12,8 +12,4 @@ app.use(authentication);
 
 app.use(Users);
 
-const language = require('@google-cloud/language');
-const client = new language.LanguageServiceClient();
-
-
 exports.widgets = functions.https.onRequest(app);
