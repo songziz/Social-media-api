@@ -1,7 +1,9 @@
-const language = require('@google-cloud/language');
-const client = new language.LanguageServiceClient();
+import * as admin from 'firebase-admin';
 
 export async function extractEntity(words: string){
+  const language = require('@google-cloud/language');
+  const client = new language.LanguageServiceClient();
+
   let ret : [string, number][]= [];
 
   const document = {
@@ -16,4 +18,39 @@ export async function extractEntity(words: string){
     ret.push([entity.name, entity.salience]);
   });
   return ret;
+}
+
+const DEFAULT_URL = 'gs://hack20-52610.appspot.com/images/pexels-ronê-ferreira-2735037.jpg'
+
+export async function getImage(query: [string, number][]) {
+  let words: string[] = [];
+  query.forEach((word) => words.push(word[0].toLowerCase()));
+  const imagesRef = admin.firestore().collection('images');
+  const snapshot = await imagesRef.where('tags', 'array-contains', words).get();
+
+  if (snapshot.empty) {
+    return DEFAULT_URL;
+  }
+
+  let imageInfo : any = [];
+  snapshot.forEach(doc => {
+    imageInfo.push(doc.data());
+  });
+
+  let maxScore = -1;
+  let maxIndex = 0;
+  for (let i = 0; i < imageInfo.length; i++) { // each of the images
+    let curScore = 0;
+    for (let j = 0; j < words.length; j++) { // each of the word in query
+      if (imageInfo[j].tags.contains(words[j])){ // if image tags contains the word
+        curScore += imageInfo[j].tagscore.get(words[j]) * query[j][1];
+      }
+    }
+    if (curScore > maxScore) {
+      maxScore = curScore;
+      maxIndex = i;
+    }
+  }
+
+  return imageInfo[maxIndex].url;
 }

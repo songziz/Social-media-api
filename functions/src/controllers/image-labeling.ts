@@ -25,8 +25,8 @@ export async function getImageLabel(object : functions.storage.ObjectMetadata) {
   console.log('Labels:');
   // labels.forEach((label : any) => m.set(label.description, label.score));
   labels.forEach((label : any) => {
-    tags.push(label.description);
-    m.set(label.description, label.score);
+    tags.push(label.description.toLowerCase());
+    m.set(label.description.toLowerCase(), label.score);
   });
 
   const tagMapping = Array.from(m).reduce((obj, [key, value]) => (
