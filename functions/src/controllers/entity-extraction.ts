@@ -14,7 +14,6 @@ export async function extractEntity(words: string){
   const entities = result.entities;
   entities.forEach((entity : any) => {
     ret.push([entity.name, entity.salience]);
-
   });
   return ret;
 }
