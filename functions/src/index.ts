@@ -8,14 +8,14 @@ const app = express();
 // const language = require('@google-cloud/language');
 // const client = new language.LanguageServiceClient();
 
-import authentication from './controllers/authentication';
+//import authentication from './controllers/authentication';
 import { getImageLabel } from './controllers/image-labeling';
 
 import Users from './routes/users';
 
-app.use(authentication);
+//app.use(authentication);
 
-app.use(Users);
+app.use('/users', Users);
 
 
 exports.widgets = functions.https.onRequest(app);

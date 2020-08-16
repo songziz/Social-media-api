@@ -3,7 +3,6 @@ import {
   getUser,
   createUser,
   updateTags,
-  deleteUser,
   joinEvent,
   sendFriendRequest,
   acceptFriendRequest,
@@ -14,25 +13,23 @@ import {
 
 const router : express.Router = express.Router();
 
-router.get('/:uid', getUser);
+router.get('/:uid', getUser); // tested
 
-router.post('/', createUser);
+router.post('/', createUser); // tested
 
-router.patch('/:uid', updateTags);
+router.patch('/:uid', updateTags); // tested
 
-router.delete('/:uid', deleteUser);
+router.post('/:uid/requests/send', sendFriendRequest); // tested
 
-router.post('/:uid/requests/send', sendFriendRequest);
+router.post('/:uid/requests/accept', acceptFriendRequest); // tested
 
-router.post('/:uid/requests/accept', acceptFriendRequest);
+router.post('/:uid/events/join', joinEvent); // unsure
+ 
+router.post('/:uid/events/leave', leaveEvent); // unsure
 
-router.post('/:uid/events/join', joinEvent);
+router.get('/:uid/events/recents', getRecents); // tested
 
-router.post('/:uid/events/leave', leaveEvent);
-
-router.get('/:uid/events/recents', getRecents);
-
-router.get('/:uid/requests', getRequests);
+router.get('/:uid/requests', getRequests); // tested
 
 
 export default router;

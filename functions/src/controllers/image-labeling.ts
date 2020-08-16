@@ -9,7 +9,7 @@ export async function getImageLabel(object : functions.storage.ObjectMetadata) {
   }
 
   const m : Map<string, number> = new Map();
-  let tags : string[] = [];
+  const tags : string[] = [];
 
   const url = BUCKET_NAME_PREF + object.name;
 

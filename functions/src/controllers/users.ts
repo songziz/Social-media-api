@@ -1,6 +1,5 @@
 import * as express from 'express';
 import * as admin from 'firebase-admin';
-import User from '../util/user';
 
 /**
  * GET a specific user based on their UID. Returns a User object in the body
@@ -28,15 +27,13 @@ export const getUser = (req: express.Request, res: express.Response) => {
       const result = {
         username: data!.username,
         icon: data!.icon,
-        friendRequests: User.friendRequestsFromFS(data!.friendRequests),
+        uid: uid,
       };
       res.status(200).json(result);
     } else {
       res.sendStatus(404);
     }
   }).catch((error) => res.status(500).send(error.message));
-
-  admin.firestore().collection
 };
 
 /**
@@ -59,7 +56,7 @@ export const createUser = (req: express.Request, res: express.Response) => {
 
   const {info} = req.body;
 
-  let newUser : any = {
+  const newUser : any = {
     username: info.username,
     icon: info.icon,
     uid: info.uid,
@@ -105,24 +102,6 @@ export const updateTags = (req: express.Request, res: express.Response) => {
 };
 
 /**
- * Deletes a user from the database
- * @param req express request with a uid in the path parameters
- * @param res express request with status representing the result of the transaction
- */
-export const deleteUser = (req: express.Request, res: express.Response) => {
-  if (!req.params.uid) {
-    res.sendStatus(400);
-    return;
-  }
-
-  const uid : string = req.params.uid;
-
-  admin.firestore().collection('users').doc(uid).delete()
-    .then(() => res.sendStatus(200))
-    .catch((error) => res.status(500).send(error.message));
-};
-
-/**
  * Sends a friend request from one user to another.
  *
  * @param req an express request with the sender's uid in the path params and the
@@ -142,12 +121,12 @@ export const sendFriendRequest = async (req: express.Request, res: express.Respo
   const to = admin.firestore().collection('users').doc(toUid);
   
   try {
-    admin.firestore().runTransaction(async () => {
+    await admin.firestore().runTransaction(async () => {
       const fromData : any = await from.get().then((doc) => doc.data());
       const toData : any = await to.get().then((doc) => doc.data());
       
-      await from.collection('fromRequests').doc(fromUid).set({username: toData.username, icon: toData.icon});
-      await to.collection('toRequests').doc(toUid).set({username: fromData.username, icon: fromData.icon});
+      await from.collection('fromRequests').doc(toUid).set({username: toData.username, icon: toData.icon});
+      await to.collection('toRequests').doc(fromUid).set({username: fromData.username, icon: fromData.icon});
     });
 
     res.sendStatus(201);
@@ -180,11 +159,26 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
       const toData = await from.collection('fromRequests').doc(toUid).get().then((doc) => doc.data());
       const fromData = await to.collection('toRequests').doc(fromUid).get().then((doc) => doc.data());
 
-      await from.collection('friends').doc(toUid).set(toData!);
-      await to.collection('friends').doc(fromUid).set(fromData!);
+      const toProf = await to.get().then(((doc) => doc.data()!));
+      const fromProf = await from.get().then((doc) => doc.data()!);
+      
+      const toResult = {
+        ...toData,
+        uid : toUid,
+        tags: toProf.tags,
+      }
 
-      from.collection('fromRequests').doc(toUid).delete();
-      to.collection('toRequests').doc(fromUid).delete();
+      const fromResult = {
+        ...fromData,
+        uid: fromUid,
+        tags: fromProf.tags,
+      }
+
+      await from.collection('friends').doc(toUid).set(toResult);
+      await to.collection('friends').doc(fromUid).set(fromResult);
+
+      await from.collection('fromRequests').doc(toUid).delete();
+      await to.collection('toRequests').doc(fromUid).delete();
 
       res.sendStatus(201);
     });
@@ -326,13 +320,13 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
       recents = await admin.firestore().collection('users').doc(uid).collection('events').where('current', '==', true).get();
     } catch (error) {
       res.status(500).send(error.message);
-      return
+      return;
     }
 
     const result : any[] = [];
 
     recents.forEach((doc : admin.firestore.QueryDocumentSnapshot) => {
-      const data = doc.data()!;
+      const data = doc.data();
       result.push({
         slots: data.slots,
         username: data.username,
@@ -358,24 +352,28 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
         const toReq = await doc.collection('toRequests').get();
         const fromReq = await doc.collection('fromRequests').get();
 
-        let toResult : any[] = [];
-        toReq.docs.forEach((doc) => {
-          const data  = doc.data()!;
-          toResult.push({
-            username: data.username,
-            icon: data.icon,
-            uid: doc.id,
-          })
+        const toResult : any[] = [];
+        toReq.docs.forEach((document) => {
+          if (document.id !== 'INIT_DOCUMENT') {
+            const data  = document.data();
+            toResult.push({
+              username: data.username,
+              icon: data.icon,
+              uid: doc.id,
+            });
+          }
         });
 
-        let fromResult : any[] = [];
-        fromReq.docs.forEach((doc) => {
-          const data  = doc.data()!;
-          fromResult.push({
-            username: data.username,
-            icon: data.icon,
-            uid: doc.id,
-          })
+        const fromResult : any[] = [];
+        fromReq.docs.forEach((document) => {
+          if (document.id !== 'INIT_DOCUMENT') {
+            const data  = document.data();
+            fromResult.push({
+              username: data.username,
+              icon: data.icon,
+              uid: doc.id,
+            });
+          }
         });
 
         res.status(200).json([toResult, fromResult]);
@@ -383,21 +381,7 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
     } catch (error) {
       res.status(500).send(error.message);
     }
-  }
-
-// leaveEvent: DONE
-// path params : uid -> uid of user
-// queury param: event -> event uid
-// removes user from event, and updates all of the other user's slots and
-// deletes the event from the user's event collection
-
-// getRecents: Done
-// path params: uid -> uid of user
-// returns the recent events for the user (query their collection where current == true)
-
-// getFriends:
-// path params: uid -> uid of user
-// returns friends of user (query their friends collection)
+  };
 
 export const getFriends = async (req: express.Request, res: express.Response) => {
   if (!req.params.uid) {
@@ -412,9 +396,9 @@ export const getFriends = async (req: express.Request, res: express.Response) =>
     const userInfo = await user.get();
     const tags = userInfo.data()!.tags; // list of tags mapped to number
     const snapshot = await user.collection('friends').get();
-    let friends = snapshot.docs.map(doc => doc.data()); // array of friends
+    const friends = snapshot.docs.map(doc => doc.data()); // array of friends
 
-    let fScoreMap: Map<Object, number> = new Map();
+    const fScoreMap: Map<Object, number> = new Map();
     for (let i = 0; i < friends.length; i++) {
       let curScore = 0;
       for (const key of Object.keys(tags)) {

@@ -9,7 +9,7 @@ export async function extractEntity(words: string){
   const language = require('@google-cloud/language');
   const client = new language.LanguageServiceClient();
 
-  let ret : [string, number][]= [];
+  const ret : [string, number][]= [];
 
   const document = {
     content: words,
@@ -34,7 +34,7 @@ const DEFAULT_URL = 'gs://hack20-52610.appspot.com/images/pexels-ronê-ferreira
  * https://firebase.google.com/docs/storage/web/download-files
  */
 export async function getImage(query: [string, number][]) {
-  let words: string[] = [];
+  const words: string[] = [];
   query.forEach((word) => words.push(word[0].toLowerCase()));
   const imagesRef = admin.firestore().collection('images');
   const snapshot = await imagesRef.where('tags', 'array-contains', words).get();
@@ -43,7 +43,7 @@ export async function getImage(query: [string, number][]) {
     return DEFAULT_URL;
   }
 
-  let imageInfo : any = [];
+  const imageInfo : any = [];
   snapshot.forEach(doc => {
     imageInfo.push(doc.data());
   });
