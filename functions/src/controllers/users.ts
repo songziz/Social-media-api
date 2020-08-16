@@ -223,6 +223,7 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
         name: data.name,
         uid: eventId,
         current: true,
+        username: data.username,
       }
   
       slots.push(uid);
@@ -252,7 +253,31 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
         await admin.firestore().collection('users').doc(id).collection('events')
           .doc(eventId).set(eventSummary);
       }
+
       return Promise.resolve();
     }).then(() => res.sendStatus(201)).catch((error) => res.status(500).send(error.message));
   };
 
+
+// leaveEvent:
+// path params : uid -> uid of user
+// queury param: event -> event uid
+// removes user from event, and updates all of the other user's slots and 
+// deletes the event from the user's event collection
+
+// getRecents:
+// path params: uid -> uid of user
+// returns the recent events for the user (query their collection where current == true)
+
+// getFriends:
+// path params: uid -> uid of user
+// returns friends of suer (query their friends collection)
+
+// getFeed:
+// path params: uid -> uid of user
+// returns all of the events that their friends have in their
+// 'events' collection
+
+// getRequests:
+// path params: uid -> uid of usre
+// returns the requests sent from/to a user
