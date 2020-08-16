@@ -207,62 +207,52 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
     const {uid} = req.params;
     const eventId = req.query.event as string;
 
-    try {
-      await admin.firestore().runTransaction(async () => {
-        const eventDoc = await admin.firestore().collection('events').doc(eventId).get();
-    
-        const data = eventDoc.data()!;
-    
-        const slots: string[] = data.slots;
-    
-        if (slots.length > 9) {
-          res.status(400).send("This event is full");
-          return;
-        }
+    await admin.firestore().runTransaction(async () => {
+      const eventDoc = await admin.firestore().collection('events').doc(eventId).get();
   
-        const eventSummary : any = {
-          createdBy: data.createdBy,
-          name: data.name,
-          uid: eventId,
-          current: true,
-        }
-    
-        slots.push(uid);
-      
-        // update event here
-    
-        let icons : string[] = [];
-        if (slots.length !== 1) { // get previous users' icons if they are there
-          await admin.firestore().collection('users').doc(slots[0]).collection('events').doc(eventId).get()
-            .then((doc) => {
-              if (doc.exists) {
-                icons = doc.data()!.slots;
-              }
-            });
-        }
+      const data = eventDoc.data()!;
   
-        // get newest user's icon
-        await admin.firestore().collection('users').doc(uid).get().then((doc) => {
-          if (doc.exists) {
-            icons.push(doc.data()!.icon);
-          }
-        });
-    
-        eventSummary.slots = icons; 
-        
-        for (const id of slots) {
-          await admin.firestore().collection('users').doc(id).collection('events')
-            .doc(eventId).set(eventSummary).then(() => true).catch((error) => {
-              res.status(500).send(error.message);
-              return false
-            });
-        }
+      const slots: string[] = data.slots;
   
-        res.sendStatus(201);
-      });
-    } catch (error) {
-      res.status(500).send(error.message);
-    }
+      if (slots.length > 9) {
+        return Promise.reject('The event is full');
+      }
 
-  }
+      const eventSummary : any = {
+        createdBy: data.createdBy,
+        name: data.name,
+        uid: eventId,
+        current: true,
+      }
+  
+      slots.push(uid);
+  
+      let icons : string[] = [];
+      if (slots.length !== 1) { // get previous users' icons if they are there
+        await admin.firestore().collection('users').doc(slots[0]).collection('events').doc(eventId).get()
+          .then((doc) => {
+            if (doc.exists) {
+              icons = doc.data()!.slots;
+            }
+          });
+      }
+
+      // get newest user's icon
+      await admin.firestore().collection('users').doc(uid).get().then((doc) => {
+        if (doc.exists) {
+          icons.push(doc.data()!.icon);
+        }
+      });
+  
+      eventSummary.slots = icons; 
+
+      await admin.firestore().collection('events').doc(eventId).set({slots: slots}, {merge: true});
+      
+      for (const id of slots) {
+        await admin.firestore().collection('users').doc(id).collection('events')
+          .doc(eventId).set(eventSummary);
+      }
+      return Promise.resolve();
+    }).then(() => res.sendStatus(201)).catch((error) => res.status(500).send(error.message));
+  };
 
