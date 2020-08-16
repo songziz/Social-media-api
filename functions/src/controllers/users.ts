@@ -21,7 +21,7 @@ export const getUser = (req: express.Request, res: express.Response) => {
   }
 
   const uid : string = req.params.uid;
-  
+
   admin.firestore().collection('users').doc(uid).get().then(function(doc) {
     if (doc.exists) {
       const data = doc.data();
@@ -40,7 +40,7 @@ export const getUser = (req: express.Request, res: express.Response) => {
 };
 
 /**
- * 
+ *
  * @param req express request with the body looking like : {
  *    info: {
  *      username: string,
@@ -83,7 +83,7 @@ export const createUser = (req: express.Request, res: express.Response) => {
  * Updates a user's tags for their preferences
  * @param req express requrest with a body that has a property called "tags" that updates the tags
  * of the user. And has the uid in the path parameters
- * 
+ *
  * @param res express request with the response code.
  */
 export const updateTags = (req: express.Request, res: express.Response) => {
@@ -124,15 +124,15 @@ export const deleteUser = (req: express.Request, res: express.Response) => {
 
 /**
  * Sends a friend request from one user to another.
- * 
- * @param req an express request with the sender's uid in the path params and the 
+ *
+ * @param req an express request with the sender's uid in the path params and the
  * recipient user in the query params
  * @param res an express response with status 201 if successful
  */
 export const sendFriendRequest = async (req: express.Request, res: express.Response) => {
   if (!req.params.uid || !req.query.toUid) {
     res.sendStatus(400);
-    return; 
+    return;
   }
 
   const fromUid = req.params.uid;
@@ -158,10 +158,10 @@ export const sendFriendRequest = async (req: express.Request, res: express.Respo
 
 /**
  * accept friend request from one user to another.
- * 
+ *
  * @param req the friend that is accepting the request's id must be in the path params and the sender's
  * id must be in the query params with name "fromUid"
- * @param res 
+ * @param res
  */
 export const acceptFriendRequest = async (req: express.Request, res: express.Response) => {
   if (!req.params.uid || !req.query.fromUid) {
@@ -176,16 +176,16 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
     await admin.firestore().runTransaction(async () => {
       const from = admin.firestore().collection('users').doc(fromUid);
       const to = admin.firestore().collection('users').doc(toUid);
-  
+
       const toData = await from.collection('fromRequests').doc(toUid).get().then((doc) => doc.data());
       const fromData = await to.collection('toRequests').doc(fromUid).get().then((doc) => doc.data());
-  
+
       await from.collection('friends').doc(toUid).set(toData!);
       await to.collection('friends').doc(fromUid).set(fromData!);
-  
+
       from.collection('fromRequests').doc(toUid).delete();
       to.collection('toRequests').doc(fromUid).delete();
-  
+
       res.sendStatus(201);
     });
   } catch (error) {
@@ -195,10 +195,10 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
 
   /**
    * Adds the user to the line for the event.
-   * 
+   *
    * @param req request with the uid of the user in the path params and the event uid in the
    * query params with name "event".
-   * @param res 
+   * @param res
    */
   export const joinEvent = async (req: express.Request, res: express.Response) => {
     if (!req.params.uid || !req.query.event) {
@@ -211,11 +211,11 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
 
     await admin.firestore().runTransaction(async () => {
       const eventDoc = await admin.firestore().collection('events').doc(eventId).get();
-  
+
       const data = eventDoc.data()!;
-  
+
       const slots: string[] = data.slots;
-  
+
       if (slots.length > 9) {
         return Promise.reject('The event is full');
       }
@@ -227,9 +227,9 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
         current: true,
         username: data.username,
       }
-  
+
       slots.push(uid);
-  
+
       let icons : string[] = [];
       if (slots.length !== 1) { // get previous users' icons if they are there
         await admin.firestore().collection('users').doc(slots[0]).collection('events').doc(eventId).get()
@@ -246,11 +246,11 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
           icons.push(doc.data()!.icon);
         }
       });
-  
-      eventSummary.slots = icons; 
+
+      eventSummary.slots = icons;
 
       await admin.firestore().collection('events').doc(eventId).set({slots: slots}, {merge: true});
-      
+
       for (const id of slots) {
         await admin.firestore().collection('users').doc(id).collection('events')
           .doc(eventId).set(eventSummary);
@@ -388,7 +388,7 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
 // leaveEvent: DONE
 // path params : uid -> uid of user
 // queury param: event -> event uid
-// removes user from event, and updates all of the other user's slots and 
+// removes user from event, and updates all of the other user's slots and
 // deletes the event from the user's event collection
 
 // getRecents: Done
@@ -397,8 +397,44 @@ export const acceptFriendRequest = async (req: express.Request, res: express.Res
 
 // getFriends:
 // path params: uid -> uid of user
-// returns friends of suer (query their friends collection)
+// returns friends of user (query their friends collection)
 
-// getRequests: Done
-// path params: uid -> uid of usre
+export const getFriends = async (req: express.Request, res: express.Response) => {
+  if (!req.params.uid) {
+    res.sendStatus(400);
+    return;
+  }
+
+  const uid = req.params.uid;
+
+  try {
+    const user = admin.firestore().collection('users').doc(uid);
+    const userInfo = await user.get();
+    const tags = userInfo.data()!.tags; // list of tags mapped to number
+    const snapshot = await user.collection('friends').get();
+    let friends = snapshot.docs.map(doc => doc.data()); // array of friends
+
+    let fScoreMap: Map<Object, number> = new Map();
+    for (let i = 0; i < friends.length; i++) {
+      let curScore = 0;
+      for (const key of Object.keys(tags)) {
+        if (Object.keys(friends[i].tags).includes(key)) {
+          curScore += friends[i].tags.get(key) * tags.get(key);
+        }
+      }
+      fScoreMap.set(friends[i], curScore)
+    }
+
+    friends.sort((a:any, b:any) => {
+      return fScoreMap.get(b)! - fScoreMap.get(a)!;
+    });
+
+    res.sendStatus(201).json(friends);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+}
+
+// getRequests:
+// path params: uid -> uid of user
 // returns the requests sent from/to a user
