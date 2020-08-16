@@ -404,7 +404,7 @@ export const getFriends = async (req: express.Request, res: express.Response) =>
       let curScore = 0;
       for (const key of Object.keys(tags)) {
         if (Object.keys(friends[i].tags).includes(key)) {
-          curScore += friends[i].tags.get(key) * tags.get(key);
+          curScore += friends[i].tags[key] * tags[key];
         }
       }
       fScoreMap.set(friends[i], curScore)
