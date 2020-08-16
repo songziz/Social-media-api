@@ -414,12 +414,18 @@ export const getFriends = async (req: express.Request, res: express.Response) =>
       return fScoreMap.get(b)! - fScoreMap.get(a)!;
     });
 
-    res.sendStatus(201).json(friends);
+    res.status(200).json(friends);
   } catch (error) {
     res.status(500).send(error.message);
   }
 }
 
-// getRequests:
-// path params: uid -> uid of user
-// returns the requests sent from/to a user
+export const getEvents = (req: express.Request, res: express.Response) => {
+  if (!req.params.uid) {
+    res.sendStatus(400);
+    return;
+  }
+
+  const {uid} = req.params;
+
+}
